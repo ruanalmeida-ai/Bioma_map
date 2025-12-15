@@ -1059,12 +1059,23 @@ elif st.session_state["stats_df"] is not None:
         if st.button("🌍 Gerar GeoTIFF", use_container_width=True):
             try:
                 with st.spinner("⏳ Gerando GeoTIFF..."):
-                    # Prepara o download da imagem GeoTIFF
-                    download_url = base_image.getDownloadUrl({
-                        'scale': 30,
+                    # Prepara o download da imagem GeoTIFF com clipping e escala reduzida para evitar limite de 50MB
+                    export_image = base_image.unmask(27)  # Mascara valores sem dados
+                    
+                    # Calcula a área de bounding box para verificar se não é muito grande
+                    roi_bounds = ee_roi_geometry.bounds()
+                    bbox_area = roi_bounds.area().divide(1e4).getInfo()  # em hectares
+                    
+                    # Se área > 100.000 ha, usa escala 60m em vez de 30m
+                    scale = 60 if bbox_area > 100000 else 30
+                    
+                    download_url = export_image.getDownloadUrl({
+                        'scale': scale,
                         'crs': 'EPSG:4326',
-                        'fileFormat': 'GeoTIFF'
+                        'fileFormat': 'GeoTIFF',
+                        'region': roi_bounds.getInfo()
                     })
+                
                 
                 st.success("✅ GeoTIFF gerado com sucesso!")
                 st.markdown(f"[📥 Clique para baixar]({download_url})")
@@ -1079,4 +1090,5 @@ st.markdown("---")
 if not st.session_state.get('enable_transition'):
      st.info("💡 **Próximo Passo:** Gostaria de executar a Análise de Transição? Ative a opção **'Habilitar Análise de Transição (Dois Anos)'** no sidebar e clique em 'Executar Análise/Visualização'.")
 elif st.session_state.get('enable_transition'):
+
      st.info("💡 **Próximo Passo:** Para recalcular, altere o ano inicial ou final no sidebar e clique em 'Executar Análise/Visualização'.")
