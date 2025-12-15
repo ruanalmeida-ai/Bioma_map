@@ -1092,3 +1092,26 @@ if not st.session_state.get('enable_transition'):
      st.info("💡 **Próximo Passo:** Gostaria de executar a Análise de Transição? Ative a opção **'Habilitar Análise de Transição (Dois Anos)'** no sidebar e clique em 'Executar Análise/Visualização'.")
 elif st.session_state.get('enable_transition'):
      st.info("💡 **Próximo Passo:** Para recalcular, altere o ano inicial ou final no sidebar e clique em 'Executar Análise/Visualização'.")
+
+# --- Rodapé com Branding Pessoal ---
+st.markdown("---")
+st.markdown("""
+<div style="text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 10px; margin-top: 40px;">
+    <p style="font-size: 14px; color: #555; margin: 10px 0;">
+        <strong>Desenvolvido por:</strong>
+    </p>
+    <h3 style="margin: 10px 0; color: #1f77b4;">👨‍💻 Ruan Almeida</h3>
+    <p style="font-size: 13px; color: #666; margin: 15px 0;">
+        <a href="https://www.linkedin.com/in/ruan-almeida-8b8136295/" target="_blank" style="text-decoration: none; color: #0A66C2; font-weight: 600; margin: 0 15px;">
+            🔗 LinkedIn
+        </a>
+        <a href="https://www.instagram.com/ruan_almeida_martins/" target="_blank" style="text-decoration: none; color: #E4405F; font-weight: 600; margin: 0 15px;">
+            📷 Instagram
+        </a>
+    </p>
+    <p style="font-size: 12px; color: #999; margin-top: 15px;">
+        MapBiomas LULC Temporal Analysis Platform
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
