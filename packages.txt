@@ -1,7 +1,2 @@
 gdal-bin
-libgdal-dev
-libspatialindex-dev 
-unixodbc
-libodbc2
-libodbcinst2
 proj-bin
