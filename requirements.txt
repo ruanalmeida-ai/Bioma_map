@@ -2,11 +2,10 @@ streamlit
 earthengine-api
 geemap
 geopandas
-pandas
-plotly
 folium
 streamlit-folium
-openpyxl
-shapely
+plotly
+pandas
 numpy
-
+shapely
+openpyxl
