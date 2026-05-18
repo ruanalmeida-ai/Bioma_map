@@ -744,34 +744,33 @@ if roi is not None:
     base_year = st.session_state["ano_atual"]
     
     # =========================================================
+# =========================================================
 # FUNÇÃO SEGURA PARA REMOVER CAMADAS
-# Compatível com geemap + folium
 # =========================================================
 def remove_layers_by_prefix(map_obj, prefix):
 
     try:
 
-        # Verifica se o objeto possui _children
+        # Compatível com diferentes versões do geemap/folium
         if hasattr(map_obj, "_children"):
 
             keys_to_remove = []
 
-            # Percorre as camadas
             for key, layer in list(map_obj._children.items()):
 
                 if hasattr(layer, "name"):
 
                     layer_name = str(layer.name)
 
-                    # Remove camadas que começam com o prefixo
                     if layer_name.startswith(prefix):
                         keys_to_remove.append(key)
 
-            # Remove as camadas encontradas
+            # Remove layers encontradas
             for key in keys_to_remove:
                 del map_obj._children[key]
 
     except Exception as e:
+
         st.warning(f"Erro ao remover camadas: {e}")
 
 
@@ -782,27 +781,29 @@ remove_layers_by_prefix(m, "MapBiomas")
 
 
 # =========================================================
-# ANÁLISE DE TRANSIÇÃO
+# ANÁLISE DE CAMADAS
 # =========================================================
-if st.session_state.get('enable_transition'):
+enable_transition = st.session_state.get('enable_transition', False)
 
-    ano_inicial = st.session_state['ano_inicial']
+if enable_transition:
+
+    ano_inicial = st.session_state.get('ano_inicial')
 
     st.info(
-        f"🗺️ **Mapa com 2 Camadas:** "
-        f"Use o controle de camadas para alternar "
-        f"entre {ano_inicial} e {base_year}"
+        f"🗺️ Mapa com 2 Camadas: "
+        f"{ano_inicial} e {base_year}"
     )
 
-    # -------------------------------
-    # Camada Ano Inicial
-    # -------------------------------
+    # -----------------------------------------------------
+    # CAMADA ANO INICIAL
+    # -----------------------------------------------------
     initial_image, initial_params, initial_layer_name = get_map_image(
         ano_inicial,
         roi=roi
     )
 
-    if initial_image:
+    if initial_image is not None:
+
         add_ee_layer_compat(
             m,
             initial_image,
@@ -812,15 +813,16 @@ if st.session_state.get('enable_transition'):
             0.6
         )
 
-    # -------------------------------
-    # Camada Ano Final
-    # -------------------------------
+    # -----------------------------------------------------
+    # CAMADA ANO FINAL
+    # -----------------------------------------------------
     final_image, final_params, final_layer_name = get_map_image(
         base_year,
         roi=roi
     )
 
-    if final_image:
+    if final_image is not None:
+
         add_ee_layer_compat(
             m,
             final_image,
@@ -830,17 +832,18 @@ if st.session_state.get('enable_transition'):
             0.7
         )
 
-# =========================================================
-# ANÁLISE DE ANO ÚNICO
-# =========================================================
 else:
 
+    # -----------------------------------------------------
+    # ANÁLISE DE ANO ÚNICO
+    # -----------------------------------------------------
     base_image, base_params, base_layer_name = get_map_image(
         base_year,
         roi=roi
     )
 
-    if base_image:
+    if base_image is not None:
+
         add_ee_layer_compat(
             m,
             base_image,
@@ -883,29 +886,26 @@ except Exception as e:
         f"Não foi possível adicionar ROI ao mapa: {e}"
     )
 
-except Exception as e:
-
-    st.warning(
-        f"Não foi possível adicionar ROI ao mapa: {e}"
-    )
-
 
 # =========================================================
 # CONTROLE DE CAMADAS
-# Evita duplicação no Streamlit rerun
 # =========================================================
-if not st.session_state.get("layer_control_added", False):
+try:
 
-    m.add_layer_control()
+    if not st.session_state.get("layer_control_added", False):
 
-    st.session_state["layer_control_added"] = True
+        m.add_layer_control()
+
+        st.session_state["layer_control_added"] = True
+
+except Exception:
+    pass
 
 
 # =========================================================
 # EXIBE MAPA
 # =========================================================
 m.to_streamlit(height=700)
-    
 
     
 else:
