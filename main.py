@@ -754,70 +754,92 @@ if roi is None:
 
 # --- Inicialização e Renderização do Mapa GEEMAP ---
 
+# --- Inicialização e Renderização do Mapa GEEMAP ---
+
 if roi is not None:
     st.markdown("---")
     st.markdown("### 🗺️ Mapa de Análise")
     st.info(f"📍 ROI Definida | 📅 Ano: **{st.session_state['ano_atual']}**")
 
-    force_recreate = st.session_state.get("geemap_map_object") is None or st.session_state["roi_source"] != "Atual"
-    
-    if force_recreate:
-        m = geemap.Map(center=[-14.5, -52], zoom=4, locate_control=True, draw_control=False)
-        m.add_basemap("OpenStreetMap")
-        m.centerObject(roi, zoom=10)
-        st.session_state["geemap_map_object"] = m
-        st.session_state["roi_source"] = "Atual"
-    else:
-        m = st.session_state["geemap_map_object"]
-
     base_year = st.session_state["ano_atual"]
-
-    # =========================================================
-    # REMOVE CAMADAS ANTIGAS DO MAPBIOMAS
-    # =========================================================
-    remove_layers_by_prefix(m, "MapBiomas")
-
-    # =========================================================
-    # ANÁLISE DE CAMADAS
-    # =========================================================
     enable_transition = st.session_state.get('enable_transition', False)
 
-    if enable_transition:
-        ano_inicial = st.session_state.get('ano_inicial')
-        st.info(f"🗺️ Mapa com 2 Camadas: {ano_inicial} e {base_year}")
+    # Cria mapa Folium (compatível com Streamlit)
+    m = folium.Map(location=[-14.5, -52], zoom_start=5)
+    folium.TileLayer("OpenStreetMap").add_to(m)
 
-        initial_image, initial_params, initial_layer_name = get_map_image(ano_inicial, roi=roi)
-        if initial_image is not None:
-            add_ee_layer_compat(m, initial_image, initial_params, initial_layer_name, False, 0.6)
-
-        final_image, final_params, final_layer_name = get_map_image(base_year, roi=roi)
-        if final_image is not None:
-            add_ee_layer_compat(m, final_image, final_params, final_layer_name, True, 0.7)
-
-    else:
-        base_image, base_params, base_layer_name = get_map_image(base_year, roi=roi)
-        if base_image is not None:
-            add_ee_layer_compat(m, base_image, base_params, base_layer_name, True, 0.7)
-
-    # =========================================================
-    # ROI
-    # =========================================================
-    remove_layers_by_prefix(m, "🔴 ROI")
-
+    # Adiciona camada(s) MapBiomas via tile URL do EE
     try:
-        add_ee_layer_compat(m, roi, {'color': 'FF0000', 'fillColor': '00000000'}, "🔴 ROI - Área de Interesse", True, 0.8)
+        if enable_transition:
+            ano_inicial = st.session_state.get('ano_inicial')
+            st.info(f"🗺️ Mapa com 2 Camadas: {ano_inicial} e {base_year}")
+
+            img_i, params_i, name_i = get_map_image(ano_inicial, roi=roi)
+            map_id_i = ee.data.getMapId({**params_i, 'image': img_i})
+            folium.TileLayer(
+                tiles=map_id_i['tile_fetcher'].url_format,
+                attr="Google Earth Engine / MapBiomas",
+                name=name_i,
+                overlay=True,
+                control=True,
+                opacity=0.6,
+                show=False
+            ).add_to(m)
+
+            img_f, params_f, name_f = get_map_image(base_year, roi=roi)
+            map_id_f = ee.data.getMapId({**params_f, 'image': img_f})
+            folium.TileLayer(
+                tiles=map_id_f['tile_fetcher'].url_format,
+                attr="Google Earth Engine / MapBiomas",
+                name=name_f,
+                overlay=True,
+                control=True,
+                opacity=0.7,
+                show=True
+            ).add_to(m)
+
+        else:
+            img, params, name = get_map_image(base_year, roi=roi)
+            map_id = ee.data.getMapId({**params, 'image': img})
+            folium.TileLayer(
+                tiles=map_id['tile_fetcher'].url_format,
+                attr="Google Earth Engine / MapBiomas",
+                name=name,
+                overlay=True,
+                control=True,
+                opacity=0.7,
+                show=True
+            ).add_to(m)
+
+    except Exception as e:
+        st.warning(f"Não foi possível adicionar camada MapBiomas ao mapa: {e}")
+
+    # Adiciona ROI como GeoJSON
+    try:
+        roi_geojson = roi.geometry().getInfo()
+        folium.GeoJson(
+            roi_geojson,
+            name="🔴 ROI - Área de Interesse",
+            style_function=lambda x: {
+                'color': '#FF0000',
+                'fillColor': 'transparent',
+                'weight': 2
+            }
+        ).add_to(m)
+
+        # Centraliza no ROI
+        bounds = roi.geometry().bounds().getInfo()['coordinates'][0]
+        lngs = [c[0] for c in bounds]
+        lats = [c[1] for c in bounds]
+        m.fit_bounds([[min(lats), min(lngs)], [max(lats), max(lngs)]])
+
     except Exception as e:
         st.warning(f"Não foi possível adicionar ROI ao mapa: {e}")
 
-    # Controle de camadas
-    try:
-        if not st.session_state.get("layer_control_added", False):
-            m.add_layer_control()
-            st.session_state["layer_control_added"] = True
-    except Exception:
-        pass
+    folium.LayerControl().add_to(m)
 
-    m.to_streamlit(height=700)
+    # Renderiza com st_folium
+    st_folium(m, height=700, width=None, returned_objects=[], key="geemap_display")
 
 else:
     st.info("Utilize as opções na barra lateral ou desenhe no mapa acima para definir sua Área de Interesse.")
