@@ -764,18 +764,18 @@ if roi is not None:
     base_year = st.session_state["ano_atual"]
     enable_transition = st.session_state.get('enable_transition', False)
 
-    # Cria mapa Folium (compatível com Streamlit)
+    # Cria mapa Folium
     m = folium.Map(location=[-14.5, -52], zoom_start=5)
-    folium.TileLayer("OpenStreetMap").add_to(m)
+    folium.TileLayer("OpenStreetMap", name="OpenStreetMap", overlay=False, control=True).add_to(m)
 
-    # Adiciona camada(s) MapBiomas via tile URL do EE
+    # Adiciona camada(s) MapBiomas
     try:
         if enable_transition:
             ano_inicial = st.session_state.get('ano_inicial')
             st.info(f"🗺️ Mapa com 2 Camadas: {ano_inicial} e {base_year}")
 
             img_i, params_i, name_i = get_map_image(ano_inicial, roi=roi)
-            map_id_i = ee.data.getMapId({**params_i, 'image': img_i})
+            map_id_i = img_i.getMapId(params_i)
             folium.TileLayer(
                 tiles=map_id_i['tile_fetcher'].url_format,
                 attr="Google Earth Engine / MapBiomas",
@@ -787,7 +787,7 @@ if roi is not None:
             ).add_to(m)
 
             img_f, params_f, name_f = get_map_image(base_year, roi=roi)
-            map_id_f = ee.data.getMapId({**params_f, 'image': img_f})
+            map_id_f = img_f.getMapId(params_f)
             folium.TileLayer(
                 tiles=map_id_f['tile_fetcher'].url_format,
                 attr="Google Earth Engine / MapBiomas",
@@ -800,7 +800,7 @@ if roi is not None:
 
         else:
             img, params, name = get_map_image(base_year, roi=roi)
-            map_id = ee.data.getMapId({**params, 'image': img})
+            map_id = img.getMapId(params)
             folium.TileLayer(
                 tiles=map_id['tile_fetcher'].url_format,
                 attr="Google Earth Engine / MapBiomas",
@@ -836,9 +836,9 @@ if roi is not None:
     except Exception as e:
         st.warning(f"Não foi possível adicionar ROI ao mapa: {e}")
 
-    folium.LayerControl().add_to(m)
+    # ✅ LayerControl SEMPRE adicionado por último, fora dos try/except
+    folium.LayerControl(collapsed=False).add_to(m)
 
-    # Renderiza com st_folium
     st_folium(m, height=700, width=None, returned_objects=[], key="geemap_display")
 
 else:
