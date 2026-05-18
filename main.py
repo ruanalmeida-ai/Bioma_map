@@ -742,9 +742,8 @@ if roi is None:
     draw.add_to(folium_map)
     draw_result = st_folium(folium_map, height=600, width=1000, key="folium_draw_map")
 
-if draw_result and draw_result.get("all_drawings"):
+    if draw_result and draw_result.get("all_drawings"):
         feature = draw_result["all_drawings"][0]
-        # Garante que é um Feature válido com geometria
         if feature.get("geometry") and feature["geometry"].get("coordinates"):
             geojson_data = {"type": "FeatureCollection", "features": [feature]}
             st.session_state["roi_source"] = "Desenho"
