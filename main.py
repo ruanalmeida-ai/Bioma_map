@@ -785,6 +785,9 @@ remove_layers_by_prefix(m, "MapBiomas")
 # =========================================================
 enable_transition = st.session_state.get('enable_transition', False)
 
+# ---------------------------------------------------------
+# MODO TRANSIÇÃO
+# ---------------------------------------------------------
 if enable_transition:
 
     ano_inicial = st.session_state.get('ano_inicial')
@@ -794,9 +797,7 @@ if enable_transition:
         f"{ano_inicial} e {base_year}"
     )
 
-    # -----------------------------------------------------
-    # CAMADA ANO INICIAL
-    # -----------------------------------------------------
+    # CAMADA INICIAL
     initial_image, initial_params, initial_layer_name = get_map_image(
         ano_inicial,
         roi=roi
@@ -813,9 +814,7 @@ if enable_transition:
             0.6
         )
 
-    # -----------------------------------------------------
-    # CAMADA ANO FINAL
-    # -----------------------------------------------------
+    # CAMADA FINAL
     final_image, final_params, final_layer_name = get_map_image(
         base_year,
         roi=roi
@@ -832,11 +831,11 @@ if enable_transition:
             0.7
         )
 
-else:
+# ---------------------------------------------------------
+# MODO ANO ÚNICO
+# ---------------------------------------------------------
+if not enable_transition:
 
-    # -----------------------------------------------------
-    # ANÁLISE DE ANO ÚNICO
-    # -----------------------------------------------------
     base_image, base_params, base_layer_name = get_map_image(
         base_year,
         roi=roi
@@ -852,7 +851,6 @@ else:
             True,
             0.7
         )
-
 
 # =========================================================
 # ROI
