@@ -1153,7 +1153,7 @@ st.markdown("""
         <a href="https://www.linkedin.com/in/ruan-almeida-8b8136295/" target="_blank" style="text-decoration: none; color: #0A66C2; font-weight: 600; margin: 0 15px;">
             🔗 LinkedIn
         </a>
-        <a href="https://www.instagram.com/ruan_almeida_martins/" target="_blank" style="text-decoration: none; color: #E4405F; font-weight: 600; margin: 0 15px;">
+        <a href="https://www.instagram.com/consultoriaruan?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" style="text-decoration: none; color: #E4405F; font-weight: 600; margin: 0 15px;">
             📷 Instagram
         </a>
     </p>
