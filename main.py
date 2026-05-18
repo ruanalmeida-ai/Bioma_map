@@ -1059,7 +1059,7 @@ elif st.session_state["stats_df"] is not None:
         st.markdown("#### Exportar Camada MapBiomas (.tiff)")
         if st.button("🌍 Gerar GeoTIFF", use_container_width=True):
             try:
-                with st.spinner("⏳ Gerando GeoTIFF..."):
+                with st.spinner("⏳ Gerando GeoTIFF em resolução 30m..."):
                     # Recupera imagem recortada da sessão
                     export_image = st.session_state.get("lulc_clipped")
                     if export_image is None:
@@ -1068,7 +1068,7 @@ elif st.session_state["stats_df"] is not None:
                         # Mascara valores sem dados
                         export_image = export_image.unmask(27)
                         
-                        # Calcula bounds da ROI para limitar o download
+                        # Calcula bounds da ROI
                         roi_bounds = roi.geometry().bounds()
                         
                         download_url = export_image.getDownloadUrl({
@@ -1080,10 +1080,11 @@ elif st.session_state["stats_df"] is not None:
                         
                         st.success("✅ GeoTIFF gerado com sucesso!")
                         st.markdown(f"[📥 Clique para baixar]({download_url})")
-                        st.caption("💡 Dados georeferenciados (EPSG:4326) para SIG")
+                        st.caption("💡 Dados georeferenciados (EPSG:4326) | Resolução: 30m")
                 
             except Exception as e:
                 st.error(f"⚠️ Erro ao gerar GeoTIFF: {str(e)}")
+                st.info("💡 **Dica:** Se a ROI for muito grande, tente reduzi-la ou use a exportação em Excel como alternativa.")
 
 # --- Próximo Passo Sugerido ---
 st.markdown("---")
@@ -1092,6 +1093,7 @@ if not st.session_state.get('enable_transition'):
      st.info("💡 **Próximo Passo:** Gostaria de executar a Análise de Transição? Ative a opção **'Habilitar Análise de Transição (Dois Anos)'** no sidebar e clique em 'Executar Análise/Visualização'.")
 elif st.session_state.get('enable_transition'):
      st.info("💡 **Próximo Passo:** Para recalcular, altere o ano inicial ou final no sidebar e clique em 'Executar Análise/Visualização'.")
+
 
 # --- Rodapé com Branding Pessoal ---
 st.markdown("---")
@@ -1114,4 +1116,3 @@ st.markdown("""
     </p>
 </div>
 """, unsafe_allow_html=True)
-
