@@ -29,6 +29,36 @@ from shapely import wkb
 import numpy as np
 
 
+# =========================================================
+# FUNÇÃO SEGURA PARA REMOVER CAMADAS
+# =========================================================
+def remove_layers_by_prefix(map_obj, prefix):
+
+    try:
+
+        # Compatível com diferentes versões do geemap/folium
+        if hasattr(map_obj, "_children"):
+
+            keys_to_remove = []
+
+            for key, layer in list(map_obj._children.items()):
+
+                if hasattr(layer, "name"):
+
+                    layer_name = str(layer.name)
+
+                    if layer_name.startswith(prefix):
+                        keys_to_remove.append(key)
+
+            # Remove layers encontradas
+            for key in keys_to_remove:
+                del map_obj._children[key]
+
+    except Exception as e:
+
+        st.warning(f"Erro ao remover camadas: {e}")
+
+
 # --- Configurações Iniciais e Inicialização do Earth Engine ---
 
 # ID do Projeto Cloud (Ajuste conforme necessário)
@@ -743,35 +773,7 @@ if roi is not None:
 
     base_year = st.session_state["ano_atual"]
     
-    # =========================================================
-# =========================================================
-# FUNÇÃO SEGURA PARA REMOVER CAMADAS
-# =========================================================
-def remove_layers_by_prefix(map_obj, prefix):
 
-    try:
-
-        # Compatível com diferentes versões do geemap/folium
-        if hasattr(map_obj, "_children"):
-
-            keys_to_remove = []
-
-            for key, layer in list(map_obj._children.items()):
-
-                if hasattr(layer, "name"):
-
-                    layer_name = str(layer.name)
-
-                    if layer_name.startswith(prefix):
-                        keys_to_remove.append(key)
-
-            # Remove layers encontradas
-            for key in keys_to_remove:
-                del map_obj._children[key]
-
-    except Exception as e:
-
-        st.warning(f"Erro ao remover camadas: {e}")
 
 
 # =========================================================
@@ -903,9 +905,7 @@ except Exception:
 # =========================================================
 # EXIBE MAPA
 # =========================================================
-m.to_streamlit(height=700)
-
-    
+    m.to_streamlit(height=700)
 else:
     st.info("Utilize as opções na barra lateral ou desenhe no mapa acima para definir sua Área de Interesse.")
 
