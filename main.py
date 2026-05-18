@@ -743,54 +743,161 @@ if roi is not None:
 
     base_year = st.session_state["ano_atual"]
     
-    # Remove todas as camadas MapBiomas antigas
-    layers_to_remove = [l for l in m._children.values() if hasattr(l, 'name') and l.name.startswith("MapBiomas")]
-    for l in layers_to_remove:
-        try:
-            m.remove_layer(l.name)
-        except:
-            pass
-    
-    # Para análise de transição, adiciona ambas as camadas
-    if st.session_state.get('enable_transition'):
-         ano_inicial = st.session_state['ano_inicial']
-         st.info(f"🗺️ **Mapa com 2 Camadas:** Use o controle de camadas para alternar entre {ano_inicial} e {base_year}")
-         
-         # Camada do ano inicial
-         initial_image, initial_params, initial_layer_name = get_map_image(ano_inicial, roi=roi)
-         if initial_image:
-             add_ee_layer_compat(m, initial_image, initial_params, initial_layer_name, False, 0.6)
-         
-         # Camada do ano final
-         final_image, final_params, final_layer_name = get_map_image(base_year, roi=roi)
-         if final_image:
-             add_ee_layer_compat(m, final_image, final_params, final_layer_name, True, 0.7)
-    else:
-        # Análise de ano único
-        base_image, base_params, base_layer_name = get_map_image(base_year, roi=roi)
-        if base_image:
-            add_ee_layer_compat(m, base_image, base_params, base_layer_name, True, 0.7)
+    # =========================================================
+# FUNÇÃO SEGURA PARA REMOVER CAMADAS
+# Compatível com geemap + folium
+# =========================================================
+def remove_layers_by_prefix(map_obj, prefix):
 
-    roi_layer_name = "🔴 ROI - Área de Interesse"
-    
-    # Remove camadas ROI antigas
-    roi_layers = [l for l in m._children.values() if hasattr(l, 'name') and l.name == roi_layer_name]
-    for l in roi_layers:    
-        try:
-            m.remove_layer(l.name)
-        except:
-            pass
-    
-    # Sempre adiciona a ROI ao mapa
     try:
-        m.addLayer(roi, {'color': 'FF0000', 'fillColor': '00000000'}, roi_layer_name, True, 0.8)
+
+        # Verifica se o objeto possui _children
+        if hasattr(map_obj, "_children"):
+
+            keys_to_remove = []
+
+            # Percorre as camadas
+            for key, layer in list(map_obj._children.items()):
+
+                if hasattr(layer, "name"):
+
+                    layer_name = str(layer.name)
+
+                    # Remove camadas que começam com o prefixo
+                    if layer_name.startswith(prefix):
+                        keys_to_remove.append(key)
+
+            # Remove as camadas encontradas
+            for key in keys_to_remove:
+                del map_obj._children[key]
+
     except Exception as e:
-        st.warning(f"Não foi possível adicionar ROI ao mapa: {e}")
-    
-    # Adiciona controle de camadas no canto do mapa
+        st.warning(f"Erro ao remover camadas: {e}")
+
+
+# =========================================================
+# REMOVE CAMADAS ANTIGAS DO MAPBIOMAS
+# =========================================================
+remove_layers_by_prefix(m, "MapBiomas")
+
+
+# =========================================================
+# ANÁLISE DE TRANSIÇÃO
+# =========================================================
+if st.session_state.get('enable_transition'):
+
+    ano_inicial = st.session_state['ano_inicial']
+
+    st.info(
+        f"🗺️ **Mapa com 2 Camadas:** "
+        f"Use o controle de camadas para alternar "
+        f"entre {ano_inicial} e {base_year}"
+    )
+
+    # -------------------------------
+    # Camada Ano Inicial
+    # -------------------------------
+    initial_image, initial_params, initial_layer_name = get_map_image(
+        ano_inicial,
+        roi=roi
+    )
+
+    if initial_image:
+        add_ee_layer_compat(
+            m,
+            initial_image,
+            initial_params,
+            initial_layer_name,
+            False,
+            0.6
+        )
+
+    # -------------------------------
+    # Camada Ano Final
+    # -------------------------------
+    final_image, final_params, final_layer_name = get_map_image(
+        base_year,
+        roi=roi
+    )
+
+    if final_image:
+        add_ee_layer_compat(
+            m,
+            final_image,
+            final_params,
+            final_layer_name,
+            True,
+            0.7
+        )
+
+# =========================================================
+# ANÁLISE DE ANO ÚNICO
+# =========================================================
+else:
+
+    base_image, base_params, base_layer_name = get_map_image(
+        base_year,
+        roi=roi
+    )
+
+    if base_image:
+        add_ee_layer_compat(
+            m,
+            base_image,
+            base_params,
+            base_layer_name,
+            True,
+            0.7
+        )
+
+
+# =========================================================
+# ROI
+# =========================================================
+roi_layer_name = "🔴 ROI - Área de Interesse"
+
+# Remove ROI antiga
+remove_layers_by_prefix(m, "🔴 ROI")
+
+
+# =========================================================
+# ADICIONA ROI
+# =========================================================
+try:
+
+    m.addLayer(
+        roi,
+        {
+            'color': 'FF0000',
+            'fillColor': '00000000'
+        },
+        roi_layer_name,
+        True,
+        0.8
+    )
+
+except Exception as e:
+
+    st.warning(
+        f"Não foi possível adicionar ROI ao mapa: {e}"
+    )
+
+
+# =========================================================
+# CONTROLE DE CAMADAS
+# Evita duplicação no Streamlit rerun
+# =========================================================
+if not st.session_state.get("layer_control_added", False):
+
     m.add_layer_control()
-    
-    m.to_streamlit(height=700)
+
+    st.session_state["layer_control_added"] = True
+
+
+# =========================================================
+# EXIBE MAPA
+# =========================================================
+m.to_streamlit(height=700)
     
 
     
