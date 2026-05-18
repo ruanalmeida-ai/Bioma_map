@@ -865,7 +865,8 @@ remove_layers_by_prefix(m, "🔴 ROI")
 # =========================================================
 try:
 
-    m.addLayer(
+    add_ee_layer_compat(
+        m,
         roi,
         {
             'color': 'FF0000',
@@ -874,6 +875,12 @@ try:
         roi_layer_name,
         True,
         0.8
+    )
+
+except Exception as e:
+
+    st.warning(
+        f"Não foi possível adicionar ROI ao mapa: {e}"
     )
 
 except Exception as e:
