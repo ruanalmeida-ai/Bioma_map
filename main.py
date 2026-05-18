@@ -742,15 +742,18 @@ if roi is None:
     draw.add_to(folium_map)
     draw_result = st_folium(folium_map, height=600, width=1000, key="folium_draw_map")
 
-    if draw_result and draw_result.get("all_drawings"):
-        feature = draw_result["all_drawings"][0]
-        geojson_data = {"type": "FeatureCollection", "features": [feature]}
 
+    if draw_result and draw_result.get("all_drawings"):
+    feature = draw_result["all_drawings"][0]
+    # Garante que é um Feature válido com geometria
+    if feature.get("geometry") and feature["geometry"].get("coordinates"):
+        geojson_data = {"type": "FeatureCollection", "features": [feature]}
         st.session_state["roi_source"] = "Desenho"
         st.session_state["roi_geometry_data"] = geojson_data
-        st.session_state["geemap_map_object"] = None 
+        st.session_state["geemap_map_object"] = None
         st.sidebar.success("✅ ROI desenhada definida. Recarregando...")
-        st.rerun() 
+        st.rerun()
+        
 
 # --- Inicialização e Renderização do Mapa GEEMAP ---
 
@@ -759,11 +762,10 @@ if roi is not None:
     st.markdown("### 🗺️ Mapa de Análise")
     st.info(f"📍 ROI Definida | 📅 Ano: **{st.session_state['ano_atual']}**")
 
-    # Força recriação do mapa se mudou o modo de análise
     force_recreate = st.session_state.get("geemap_map_object") is None or st.session_state["roi_source"] != "Atual"
     
     if force_recreate:
-        m = geemap.Map(center=[-14.5, -52], zoom=4, locate_control=True, draw_control=False) 
+        m = geemap.Map(center=[-14.5, -52], zoom=4, locate_control=True, draw_control=False)
         m.add_basemap("OpenStreetMap")
         m.centerObject(roi, zoom=10)
         st.session_state["geemap_map_object"] = m
@@ -772,143 +774,56 @@ if roi is not None:
         m = st.session_state["geemap_map_object"]
 
     base_year = st.session_state["ano_atual"]
-    
 
+    # =========================================================
+    # REMOVE CAMADAS ANTIGAS DO MAPBIOMAS
+    # =========================================================
+    remove_layers_by_prefix(m, "MapBiomas")
 
+    # =========================================================
+    # ANÁLISE DE CAMADAS
+    # =========================================================
+    enable_transition = st.session_state.get('enable_transition', False)
 
-# =========================================================
-# REMOVE CAMADAS ANTIGAS DO MAPBIOMAS
-# =========================================================
-remove_layers_by_prefix(m, "MapBiomas")
+    if enable_transition:
+        ano_inicial = st.session_state.get('ano_inicial')
+        st.info(f"🗺️ Mapa com 2 Camadas: {ano_inicial} e {base_year}")
 
+        initial_image, initial_params, initial_layer_name = get_map_image(ano_inicial, roi=roi)
+        if initial_image is not None:
+            add_ee_layer_compat(m, initial_image, initial_params, initial_layer_name, False, 0.6)
 
-# =========================================================
-# ANÁLISE DE CAMADAS
-# =========================================================
-enable_transition = st.session_state.get('enable_transition', False)
+        final_image, final_params, final_layer_name = get_map_image(base_year, roi=roi)
+        if final_image is not None:
+            add_ee_layer_compat(m, final_image, final_params, final_layer_name, True, 0.7)
 
-# ---------------------------------------------------------
-# MODO TRANSIÇÃO
-# ---------------------------------------------------------
-if enable_transition:
+    else:
+        base_image, base_params, base_layer_name = get_map_image(base_year, roi=roi)
+        if base_image is not None:
+            add_ee_layer_compat(m, base_image, base_params, base_layer_name, True, 0.7)
 
-    ano_inicial = st.session_state.get('ano_inicial')
+    # =========================================================
+    # ROI
+    # =========================================================
+    remove_layers_by_prefix(m, "🔴 ROI")
 
-    st.info(
-        f"🗺️ Mapa com 2 Camadas: "
-        f"{ano_inicial} e {base_year}"
-    )
+    try:
+        add_ee_layer_compat(m, roi, {'color': 'FF0000', 'fillColor': '00000000'}, "🔴 ROI - Área de Interesse", True, 0.8)
+    except Exception as e:
+        st.warning(f"Não foi possível adicionar ROI ao mapa: {e}")
 
-    # CAMADA INICIAL
-    initial_image, initial_params, initial_layer_name = get_map_image(
-        ano_inicial,
-        roi=roi
-    )
+    # Controle de camadas
+    try:
+        if not st.session_state.get("layer_control_added", False):
+            m.add_layer_control()
+            st.session_state["layer_control_added"] = True
+    except Exception:
+        pass
 
-    if initial_image is not None:
-
-        add_ee_layer_compat(
-            m,
-            initial_image,
-            initial_params,
-            initial_layer_name,
-            False,
-            0.6
-        )
-
-    # CAMADA FINAL
-    final_image, final_params, final_layer_name = get_map_image(
-        base_year,
-        roi=roi
-    )
-
-    if final_image is not None:
-
-        add_ee_layer_compat(
-            m,
-            final_image,
-            final_params,
-            final_layer_name,
-            True,
-            0.7
-        )
-
-# ---------------------------------------------------------
-# MODO ANO ÚNICO
-# ---------------------------------------------------------
-if not enable_transition:
-
-    base_image, base_params, base_layer_name = get_map_image(
-        base_year,
-        roi=roi
-    )
-
-    if base_image is not None:
-
-        add_ee_layer_compat(
-            m,
-            base_image,
-            base_params,
-            base_layer_name,
-            True,
-            0.7
-        )
-
-# =========================================================
-# ROI
-# =========================================================
-roi_layer_name = "🔴 ROI - Área de Interesse"
-
-# Remove ROI antiga
-remove_layers_by_prefix(m, "🔴 ROI")
-
-
-# =========================================================
-# ADICIONA ROI
-# =========================================================
-try:
-
-    add_ee_layer_compat(
-        m,
-        roi,
-        {
-            'color': 'FF0000',
-            'fillColor': '00000000'
-        },
-        roi_layer_name,
-        True,
-        0.8
-    )
-
-except Exception as e:
-
-    st.warning(
-        f"Não foi possível adicionar ROI ao mapa: {e}"
-    )
-
-
-# =========================================================
-# CONTROLE DE CAMADAS
-# =========================================================
-try:
-
-    if not st.session_state.get("layer_control_added", False):
-
-        m.add_layer_control()
-
-        st.session_state["layer_control_added"] = True
-
-except Exception:
-    pass
-
-
-# =========================================================
-# EXIBE MAPA
-# =========================================================
     m.to_streamlit(height=700)
+
 else:
     st.info("Utilize as opções na barra lateral ou desenhe no mapa acima para definir sua Área de Interesse.")
-
 
 # --- Lógica de Análise Principal (Executada após o clique no botão) ---
 
